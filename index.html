@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HFLabs — LookUP Prototype</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#0e7d8f;--accent-h:#0a6b7a;--accent-bg:#f0f8f9;--accent-border:#c8e6ea;
+  --text:#08080a;--text-m:#36393e;--text-f:#8f9092;
+  --border:#e5e5e6;--border2:#ebebec;
+  --surf:#fff;--surf2:#f8f8f8;--surf3:#f3f3f4;
+  --red:#d93649;--red-bg:#fff2f3;--amber:#d97706;--amber-bg:#fffbeb;
+  --green:#16a34a;--green-bg:#f0fdf4;
+  --r:6px;--rs:4px;--shadow:0 4px 20px rgba(0,0,0,.1);--shadow-md:0 8px 32px rgba(0,0,0,.14);
+}
+html,body{height:100%;background:#eef0f2;color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── Outer layout ── */
+.outer{display:flex;height:100vh;overflow:hidden}
+
+/* ── State sidebar ── */
+.state-bar{width:200px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px 8px;gap:4px;overflow-y:auto}
+.state-bar-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-f);padding:4px 8px 8px}
+.state-bar-sep{height:1px;background:var(--border);margin:6px 0}
+.state-bar-group{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-f);padding:6px 8px 2px;opacity:.7}
+.sb-btn{background:transparent;border:1px solid transparent;color:var(--text-m);padding:7px 10px;border-radius:var(--rs);cursor:pointer;font-family:inherit;font-size:12px;text-align:left;transition:all .15s;line-height:1.35;width:100%}
+.sb-btn:hover{background:var(--surf2);color:var(--text);border-color:var(--border2)}
+.sb-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.sb-btn strong{display:block;font-weight:600;font-size:11.5px}
+.sb-btn span{font-size:10.5px;opacity:.65;margin-top:1px;display:block}
+
+/* ── Main frame ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* ── App nav ── */
+.app-nav{background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;height:44px;padding:0 20px;flex-shrink:0;z-index:50}
+.nav-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text);margin-right:20px;text-decoration:none}
+.nav-logo-icon{width:26px;height:26px;flex-shrink:0}
+.nav-tabs{display:flex;height:44px;align-items:stretch;flex:1}
+.nav-tab{padding:0 16px;display:flex;align-items:center;font-size:13px;color:var(--text-m);cursor:pointer;border-bottom:2px solid transparent;position:relative;top:1px;white-space:nowrap;transition:color .15s}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.nav-user{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-m);cursor:pointer;padding:4px 8px;border-radius:var(--rs);transition:background .15s}
+.nav-user:hover{background:var(--surf2)}
+
+/* ── Content area ── */
+.content-area{flex:1;overflow:auto;background:#eef0f2;padding:20px}
+.sprav-card{background:var(--surf);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+
+/* ── справочник header ── */
+.sprav-header{padding:12px 16px 0;border-bottom:1px solid var(--border)}
+.sprav-breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-m);margin-bottom:10px}
+.bc-icon{width:16px;height:16px;color:var(--text-f);flex-shrink:0}
+.sprav-tabs-row{display:flex;align-items:center}
+.sprav-tab{padding:0 12px;height:36px;display:flex;align-items:center;font-size:12.5px;color:var(--text-m);cursor:pointer;border-bottom:2px solid transparent;position:relative;top:1px;transition:color .15s;white-space:nowrap}
+.sprav-tab:hover{color:var(--text)}
+.sprav-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.sprav-tab-actions{margin-left:auto;display:flex;align-items:center;gap:8px;padding-bottom:10px}
+
+/* ── Meta row ── */
+.sprav-meta{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surf2);font-size:11.5px;color:var(--text-f)}
+.meta-author{color:var(--text-m);font-weight:500}
+.meta-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-work{background:#e0f2fe;color:#0369a1}
+.badge-approve{background:#fef9c3;color:#854d0e}
+
+/* ── Search row ── */
+.sprav-toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border2)}
+.search-box{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:var(--rs);padding:5px 10px;background:var(--surf);width:240px}
+.search-box input{border:none;outline:none;font-family:inherit;font-size:12px;color:var(--text);background:transparent;width:100%}
+.search-box input::placeholder{color:var(--text-f)}
+.filter-badge{display:flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surf);font-size:12px;color:var(--text-m);cursor:pointer;transition:all .15s}
+.filter-badge:hover{border-color:var(--accent);color:var(--accent)}
+.filter-badge.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.filter-count{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:0 5px;border-radius:8px;min-width:16px;text-align:center}
+
+/* ── Table ── */
+.tbl-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--surf2);border-bottom:1px solid var(--border);padding:8px 12px;font-size:12px;font-weight:600;color:var(--text-m);text-align:left;white-space:nowrap;position:sticky;top:0;z-index:10}
+th.th-sort{cursor:pointer;user-select:none}
+th.th-sort:hover{color:var(--text)}
+.th-inner{display:flex;align-items:center;gap:4px}
+tbody tr{border-bottom:1px solid var(--border2);transition:background .1s}
+tbody tr:hover{background:var(--surf2)}
+tbody tr.row-active{background:var(--accent-bg)}
+td{padding:8px 12px;font-size:13px;color:var(--text);vertical-align:middle}
+td.td-muted{color:var(--text-m)}
+
+/* ── LookUP header ── */
+.th-lookup{cursor:pointer;user-select:none}
+.th-lookup:hover .link-ico{color:var(--accent)}
+.th-lookup.th-open .link-ico{color:var(--accent)}
+.th-lookup-inner{display:flex;align-items:center;gap:5px}
+.link-ico{color:#9ca3af;flex-shrink:0;transition:color .15s}
+.link-ico-active{color:var(--accent)}
+
+/* ── LookUP cell ── */
+.lookup-cell{display:flex;align-items:center;gap:5px;cursor:pointer;border-radius:4px;padding:1px 4px;margin:-1px -4px;transition:background .1s}
+.lookup-cell:hover{background:var(--accent-bg)}
+.lookup-cell.lc-open{background:var(--accent-bg)}
+.lookup-val{color:var(--accent);font-weight:500}
+
+/* ── Global popup (fixed, never clipped) ── */
+#gPopup{
+  position:fixed;z-index:800;display:none;
+  background:var(--surf);border:1px solid var(--border2);
+  border-radius:8px;box-shadow:var(--shadow-md);
+  animation:fadeUp .12s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Tooltip inner ── */
+.popup-inner{padding:12px 14px}
+.tt-title{font-size:11px;font-weight:600;color:var(--text-f);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.tt-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tt-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--rs);padding:4px 8px;font-size:12px;color:var(--text-m);font-weight:500;cursor:pointer;transition:background .1s}
+.tt-chip:hover{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.tt-chip-sep{font-size:11px;color:var(--text-f)}
+.tt-nav{display:flex;align-items:center;gap:4px;color:var(--accent);font-size:12px;cursor:pointer;border-top:1px solid var(--border2);padding-top:8px;margin-top:2px}
+.tt-nav:hover{text-decoration:underline}
+/* Peek */
+.peek-row{display:flex;gap:12px;padding:4px 0;border-bottom:1px solid var(--border2);align-items:baseline}
+.peek-row:last-of-type{border-bottom:none}
+.peek-label{font-size:11.5px;color:var(--text-f);min-width:100px;flex-shrink:0}
+.peek-val{font-size:12.5px;color:var(--text);font-weight:500}
+/* Picker */
+.lp-search{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border2)}
+.lp-search input{border:none;outline:none;font-family:inherit;font-size:13px;color:var(--text);background:transparent;width:100%;min-width:0}
+.lp-scroll{overflow-y:auto;max-height:240px}
+.lp-table{width:100%;border-collapse:collapse}
+.lp-table thead th{background:var(--surf2);padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-f);text-align:left;white-space:nowrap;border-bottom:1px solid var(--border2)}
+.lp-table thead th.lp-active{color:var(--accent)}
+.lp-table tbody tr{border-bottom:1px solid var(--border2);cursor:pointer;transition:background .1s}
+.lp-table tbody tr:hover{background:var(--surf2)}
+.lp-table tbody tr.lp-sel{background:var(--accent-bg)}
+.lp-table td{padding:7px 12px;font-size:12.5px;color:var(--text)}
+.lp-table .td-link-cell{color:var(--accent);font-weight:500;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.lp-table td.td-num{color:var(--text-m)}
+.lp-foot{padding:8px 12px;border-top:1px solid var(--border2);display:flex;align-items:center;background:var(--surf2);font-size:11px;color:var(--text-f);gap:4px}
+/* Sprav picker */
+.sp-header{padding:10px 14px;border-bottom:1px solid var(--border2);font-size:12px;font-weight:600;color:var(--text)}
+.sp-search{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border2)}
+.sp-search input{border:none;outline:none;font-family:inherit;font-size:12.5px;color:var(--text);background:transparent;width:100%;min-width:0}
+.sp-list{max-height:220px;overflow-y:auto;padding:6px 0}
+.sp-group{display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:11px;font-weight:600;color:var(--text-f);cursor:pointer}
+.sp-group:hover{color:var(--text)}
+.sp-item{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 28px;font-size:12.5px;color:var(--text-m);cursor:pointer;transition:background .1s}
+.sp-item:hover{background:var(--surf2);color:var(--text)}
+.sp-empty{padding:24px;text-align:center;color:var(--text-f);font-size:12px}
+/* Attr picker */
+.ap-back{display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border2);cursor:pointer;transition:background .15s}
+.ap-back:hover{background:var(--surf2)}
+.ap-sub{font-size:11px;color:var(--text-f);padding:6px 14px 8px;border-bottom:1px solid var(--border2)}
+.ap-list{max-height:220px;overflow-y:auto;padding:4px 0}
+.ap-item{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12.5px;color:var(--text-m);cursor:pointer;transition:background .1s}
+.ap-item:hover{background:var(--surf2);color:var(--text)}
+.ap-item.ap-sel{background:var(--accent-bg);color:var(--accent);font-weight:500}
+.ap-check{width:16px;height:16px;border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ap-item.ap-sel .ap-check{background:var(--accent);border-color:var(--accent)}
+.ap-tag{font-size:10px;padding:1px 5px;border-radius:3px;background:#e0f2fe;color:#0369a1;margin-left:auto;font-weight:600}
+
+/* ── Settings ── */
+.settings-header{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)}
+.settings-bc{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-m);flex:1}
+.settings-title{font-size:13px;font-weight:700;color:var(--text)}
+.settings-actions{display:flex;align-items:center;gap:8px}
+.settings-section{padding:14px 16px 6px;font-size:11.5px;font-weight:700;color:var(--text-m);border-top:1px solid var(--border2)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;font-size:13px;color:var(--text-m)}
+.toggle{width:32px;height:18px;background:#cbd5e1;border-radius:20px;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;background:white;border-radius:50%;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:16px}
+
+/* ── Attr restrictions ── */
+.attr-table{width:100%;border-collapse:collapse}
+.attr-table th{padding:7px 12px;font-size:11px;font-weight:600;color:var(--text-f);text-align:left;border-bottom:1px solid var(--border);background:var(--surf2)}
+.attr-table td{padding:8px 12px;font-size:12.5px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.attr-table tbody tr:hover{background:var(--surf2)}
+.attr-controls{display:flex;align-items:center;gap:2px}
+.attr-ico-btn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:pointer;color:var(--text-f);transition:all .15s;border:none;background:transparent;padding:0}
+.attr-ico-btn:hover{background:var(--surf2);color:var(--text-m)}
+.select-sm{border:1px solid var(--border);border-radius:var(--rs);padding:4px 24px 4px 8px;font-family:inherit;font-size:12px;color:var(--text-m);background:var(--surf);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center;min-width:120px}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--r);border:1px solid var(--accent-border);background:var(--accent-bg);color:var(--accent);font-family:inherit;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;line-height:1}
+.btn:hover{background:var(--surf3);border-color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-h);border-color:var(--accent-h);color:#fff}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text-m)}
+.btn-ghost:hover{background:var(--surf2);border-color:var(--border2);color:var(--text)}
+.btn-icon{padding:5px 8px;color:var(--text-f)}
+.btn-icon:hover{color:var(--red);border-color:#fca5a5;background:#fff2f2}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:700;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease}
+.modal{background:var(--surf);border-radius:12px;box-shadow:var(--shadow-md);width:480px;overflow:hidden;animation:scaleIn .15s ease}
+.modal-header{padding:20px 20px 12px;display:flex;align-items:flex-start;gap:12px}
+.modal-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--red-bg)}
+.modal-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--text-m)}
+.modal-body{padding:0 20px 16px}
+.modal-dep-list{background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-top:12px}
+.modal-dep-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:var(--text-m)}
+.modal-dep-count{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--accent);background:var(--accent-bg);padding:2px 7px;border-radius:10px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:8px;background:var(--surf2)}
+
+/* ── Upload ── */
+.upload-card{max-width:680px;margin:0 auto;background:var(--surf);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+.upload-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.upload-title{font-size:15px;font-weight:700;color:var(--text)}
+.upload-sub{font-size:12.5px;color:var(--text-m);margin-top:2px}
+.upload-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.err-box{margin:16px 20px;background:var(--red-bg);border:1px solid #fca5a5;border-radius:var(--r);padding:12px 14px}
+.err-box-title{font-size:12.5px;font-weight:600;color:var(--red);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.err-box-desc{font-size:12px;color:#7f1d1d;margin-bottom:10px}
+.err-table{width:100%;border-collapse:collapse}
+.err-table th{padding:6px 10px;font-size:11px;font-weight:600;color:var(--text-f);text-align:left;border-bottom:1px solid var(--border)}
+.err-table td{padding:6px 10px;font-size:12.5px;border-bottom:1px solid var(--border2)}
+.err-table td.ev{color:var(--red);font-weight:500}
+.warn-box{margin:0 20px 16px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:var(--r);padding:10px 14px;font-size:12px;color:#78350f;display:flex;align-items:flex-start;gap:8px}
+.ok-box{margin:16px 20px;background:var(--green-bg);border:1px solid #86efac;border-radius:var(--r);padding:12px 14px}
+.ok-box-title{font-size:12.5px;font-weight:600;color:var(--green);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.upload-footer{padding:12px 20px;border-top:1px solid var(--border2);background:var(--surf2);display:flex;justify-content:flex-end;gap:8px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:#15803d;color:white;padding:10px 16px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow-md);z-index:900;animation:toastIn .2s ease;pointer-events:none}
+
+/* ── Source badge ── */
+.src-badge{display:inline-flex;align-items:center;gap:4px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+
+/* ── Hint bar ── */
+.hint-bar{margin-top:10px;padding:8px 12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;font-size:12px;color:#78350f;display:flex;gap:8px;align-items:flex-start}
+
+.add-link{background:none;border:none;color:var(--accent);font-family:inherit;font-size:12.5px;cursor:pointer;padding:8px 16px;display:flex;align-items:center;gap:5px}
+.add-link:hover{opacity:.7}
+svg{display:block}
+</style>
+</head>
+<body>
+<div class="outer">
+
+<!-- Sidebar -->
+<aside class="state-bar">
+  <div class="state-bar-title">LookUP — сценарии</div>
+
+  <div class="state-bar-group">Просмотр</div>
+  <button class="sb-btn active" onclick="setState(0)">
+    <strong>Приёмник: таблица</strong>
+    <span>Колонка с LookUP-иконкой</span>
+  </button>
+  <button class="sb-btn" onclick="setState(1)">
+    <strong>Tooltip: связь</strong>
+    <span>Клик на заголовке 🔗</span>
+  </button>
+  <button class="sb-btn" onclick="setState(2)">
+    <strong>Peek: данные источника</strong>
+    <span>Клик на ячейке LookUP</span>
+  </button>
+
+  <div class="state-bar-sep"></div>
+  <div class="state-bar-group">Редактирование</div>
+  <button class="sb-btn" onclick="setState(3)">
+    <strong>Пикер LookUP</strong>
+    <span>Выбор значения из источника</span>
+  </button>
+
+  <div class="state-bar-sep"></div>
+  <div class="state-bar-group">Настройка (UC-1)</div>
+  <button class="sb-btn" onclick="setState(4)">
+    <strong>Шаг 1: выбор источника</strong>
+    <span>Список справочников</span>
+  </button>
+  <button class="sb-btn" onclick="setState(5)">
+    <strong>Шаг 2: выбор атрибута</strong>
+    <span>Поля справочника-источника</span>
+  </button>
+  <button class="sb-btn" onclick="setState(6)">
+    <strong>Связь установлена</strong>
+    <span>Сохранено + toast</span>
+  </button>
+
+  <div class="state-bar-sep"></div>
+  <div class="state-bar-group">Защита (UC-2)</div>
+  <button class="sb-btn" onclick="setState(7)">
+    <strong>Блокировка удаления</strong>
+    <span>Строка используется в приёмнике</span>
+  </button>
+
+  <div class="state-bar-sep"></div>
+  <div class="state-bar-group">Загрузка (UC-3)</div>
+  <button class="sb-btn" onclick="setState(8)">
+    <strong>Ошибки валидации</strong>
+    <span>Значения не найдены в источнике</span>
+  </button>
+  <button class="sb-btn" onclick="setState(9)">
+    <strong>Успешная загрузка</strong>
+    <span>Связи сохранены</span>
+  </button>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <nav class="app-nav">
+    <a class="nav-logo" href="#">
+      <svg class="nav-logo-icon" viewBox="0 0 26 26" fill="none">
+        <rect width="26" height="26" rx="6" fill="#1b2638"/>
+        <path d="M7 13.5A6 6 0 0 1 19 13.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M19 12.5A6 6 0 0 1 7 12.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <path d="M17.5 11l2 1.5-2 1.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Perecoder
+    </a>
+    <div class="nav-tabs">
+      <div class="nav-tab">Группы</div>
+      <div class="nav-tab active">Справочники</div>
+      <div class="nav-tab">Синхронизация</div>
+    </div>
+    <div class="nav-user">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      performer_consent
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+  </nav>
+  <div class="content-area" id="contentArea"></div>
+</div>
+
+</div>
+
+<!-- Global popup — position:fixed, never clipped by overflow -->
+<div id="gPopup"></div>
+
+<!-- Reusable SVG sprites -->
+<svg style="display:none">
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></symbol>
+  <symbol id="i-chevd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+</svg>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────
+const BRANCHES = [
+  { name:'Тула',         type:'Филиал',               region:'Новосибирск', ds:'01.05.2020', de:'21.06.2020' },
+  { name:'Москва',       type:'Филиал',               region:'Москва',      ds:'10.05.2020', de:'19.05.2020' },
+  { name:'Тула',         type:'Филиал',               region:'Москва',      ds:'20.05.2020', de:'20.06.2020' },
+  { name:'Новомосковск', type:'Региональный доп. офис',region:'Тула',        ds:'10.06.2020', de:'10.05.2020' },
+  { name:'Кострома',     type:'Региональный филиал',  region:'Челябинск',   ds:'10.07.2020', de:'Город'      },
+];
+const REGIONS = [
+  { name:'Москва',          code:'77', okrug:'ЦФО',  pop:'12 506 468' },
+  { name:'Новосибирск',     code:'54', okrug:'СФО',  pop:'1 625 631'  },
+  { name:'Тула',            code:'71', okrug:'ЦФО',  pop:'462 194'    },
+  { name:'Санкт-Петербург', code:'78', okrug:'СЗФО', pop:'5 389 720'  },
+  { name:'Екатеринбург',    code:'66', okrug:'УФО',  pop:'998 342'    },
+  { name:'Казань',          code:'16', okrug:'ПФО',  pop:'1 309 000'  },
+  { name:'Нижний Новгород', code:'52', okrug:'ПФО',  pop:'1 213 000'  },
+  { name:'Челябинск',       code:'74', okrug:'УФО',  pop:'1 130 000'  },
+];
+const SPRAVORGS = { 'Демо':['Регионы','Сотрудники','Филиалы','Отделы'], 'Тест':['Клиенты','Города'] };
+const REGION_ATTRS = [
+  { id:'code', label:'Код',               unique:false },
+  { id:'name', label:'Название',          unique:true  },
+  { id:'okr',  label:'Федеральный округ', unique:false },
+  { id:'pop',  label:'Население',         unique:false },
+  { id:'area', label:'Площадь (км²)',     unique:false },
+  { id:'tz',   label:'Часовой пояс',      unique:false },
+  { id:'zip',  label:'Почтовый индекс',   unique:false },
+];
+
+// ─── ICO helper ──────────────────────────────────────────────
+const ico = (id, sz=16) => `<svg width="${sz}" height="${sz}" style="flex-shrink:0"><use href="#i-${id}"/></svg>`;
+
+// ─── GLOBAL POPUP ────────────────────────────────────────────
+let activeAnchor = null;
+
+function showPopup(html, anchorEl, opts={}) {
+  const p = document.getElementById('gPopup');
+  p.innerHTML = html;
+  p.style.cssText = `
+    position:fixed;z-index:800;display:block;
+    background:var(--surf);border:1px solid var(--border2);
+    border-radius:8px;box-shadow:var(--shadow-md);
+    animation:fadeUp .12s ease;
+    min-width:${opts.width||240}px;
+    max-width:${opts.maxWidth||520}px;
+    visibility:hidden;
+  `;
+  activeAnchor = anchorEl;
+
+  // Mark anchor as open
+  document.querySelectorAll('.th-open, .lc-open').forEach(el => el.classList.remove('th-open','lc-open'));
+  if (anchorEl) anchorEl.classList.add(anchorEl.classList.contains('lookup-cell') ? 'lc-open' : 'th-open');
+
+  requestAnimationFrame(() => {
+    const r = anchorEl ? anchorEl.getBoundingClientRect() : {left:100, bottom:100, top:100, right:100};
+    const pw = p.offsetWidth, ph = p.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let left = r.left;
+    let top = r.bottom + 4;
+    if (left + pw > vw - 8) left = Math.max(8, vw - pw - 8);
+    if (top + ph > vh - 8) top = Math.max(8, r.top - ph - 4);
+    p.style.left = left + 'px';
+    p.style.top = top + 'px';
+    p.style.visibility = 'visible';
+  });
+}
+
+function hidePopup() {
+  const p = document.getElementById('gPopup');
+  p.style.display = 'none';
+  document.querySelectorAll('.th-open, .lc-open').forEach(el => el.classList.remove('th-open','lc-open'));
+  activeAnchor = null;
+}
+
+// Close popup on outside click
+document.addEventListener('click', e => {
+  const p = document.getElementById('gPopup');
+  if (p.style.display === 'block' && !p.contains(e.target) && e.target !== activeAnchor && !activeAnchor?.contains(e.target)) {
+    hidePopup();
+  }
+});
+
+// ─── POPUP BUILDERS ──────────────────────────────────────────
+function buildHeaderTooltip() {
+  return `<div class="popup-inner">
+    <div class="tt-title">Связь со справочником</div>
+    <div class="tt-chips">
+      <span class="tt-chip">${ico('doc',14)} Регионы</span>
+      <span class="tt-chip-sep">/</span>
+      <span class="tt-chip">${ico('link',13)} Название</span>
+    </div>
+    <div class="tt-nav">${ico('right',13)} Перейти к справочнику «Регионы»</div>
+  </div>`;
+}
+
+function buildCellTooltip(rowIdx) {
+  const r = BRANCHES[rowIdx];
+  const src = REGIONS.find(x => x.name === r.region) || { name:r.region, code:'—', okrug:'—', pop:'—' };
+  return `<div class="popup-inner" style="min-width:260px">
+    <div class="tt-title" style="display:flex;align-items:center;gap:5px;margin-bottom:10px">
+      ${ico('doc',13)} Регионы — «${src.name}»
+    </div>
+    <div class="peek-row"><span class="peek-label">Название</span><span class="peek-val">${src.name}</span></div>
+    <div class="peek-row"><span class="peek-label">Код</span><span class="peek-val">${src.code}</span></div>
+    <div class="peek-row"><span class="peek-label">Федер. округ</span><span class="peek-val">${src.okrug}</span></div>
+    <div class="peek-row"><span class="peek-label">Население</span><span class="peek-val">${src.pop}</span></div>
+    <div class="tt-nav" style="margin-top:8px">${ico('right',13)} Открыть запись в «Регионах»</div>
+  </div>`;
+}
+
+function buildLookupPicker(selectedName='Москва') {
+  const rows = REGIONS.map(r => `<tr class="${r.name===selectedName?'lp-sel':''}">
+    <td><div class="td-link-cell">${ico('link',12)} ${r.name}</div></td>
+    <td class="td-num">${r.code}</td>
+    <td class="td-num">${r.okrug}</td>
+    <td class="td-num">${r.pop}</td>
+  </tr>`).join('');
+  return `
+    <div class="lp-search">${ico('search',14)}<input type="text" placeholder="Поиск" onclick="event.stopPropagation()"></div>
+    <div class="lp-scroll">
+      <table class="lp-table">
+        <thead><tr>
+          <th class="lp-active"><div class="th-inner">Название ${ico('sort',10)}</div></th>
+          <th>Код</th><th>Федер. округ</th><th>Население</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="lp-foot">${ico('info',12)} Только уникальные и обязательные поля</div>
+  `;
+}
+
+function buildSpravPicker(step=1) {
+  if (step === 1) {
+    const list = Object.entries(SPRAVORGS).map(([g, items]) => `
+      <div class="sp-group">${ico('chevd',12)} ${g}</div>
+      ${items.map(i => `<div class="sp-item" onclick="event.stopPropagation();setState(5)">${ico('doc',14)} ${i}</div>`).join('')}
+    `).join('');
+    return `
+      <div class="sp-header">Выберите справочник для сопоставления</div>
+      <div class="sp-search">${ico('search',13)}<input type="text" placeholder="Поиск" onclick="event.stopPropagation()"></div>
+      <div class="sp-list">${list}</div>
+    `;
+  } else {
+    const items = REGION_ATTRS.map(a => `
+      <div class="ap-item ${a.id==='name'?'ap-sel':''}" onclick="event.stopPropagation()">
+        <div class="ap-check">${a.id==='name'?`<svg width="10" height="10" style="color:white"><use href="#i-check"/></svg>`:''}</div>
+        <span>${a.label}</span>
+        ${a.unique?`<span class="ap-tag">уникальный</span>`:''}
+      </div>
+    `).join('');
+    return `
+      <div class="ap-back" onclick="event.stopPropagation();setState(4)">${ico('left',14)} <span style="font-size:12.5px;font-weight:600">Регионы</span></div>
+      <div class="ap-sub">Выберите атрибут для сопоставления<br><span style="font-size:10.5px">(только уникальные и обязательные поля)</span></div>
+      <div class="ap-list">${items}</div>
+    `;
+  }
+}
+
+// ─── INTERACTIONS ────────────────────────────────────────────
+function attachInteractions(stateNum) {
+  // LookUP column header click
+  const thLookup = document.querySelector('.th-lookup');
+  if (thLookup) {
+    thLookup.addEventListener('click', e => {
+      e.stopPropagation();
+      if (document.getElementById('gPopup').style.display === 'block' && activeAnchor === thLookup) {
+        hidePopup(); return;
+      }
+      if (stateNum === 4 || stateNum === 5) {
+        const step = stateNum === 5 ? 2 : 1;
+        showPopup(buildSpravPicker(step), thLookup, {width:300});
+      } else {
+        showPopup(buildHeaderTooltip(), thLookup, {width:260});
+      }
+    });
+  }
+
+  // LookUP cells click
+  document.querySelectorAll('.lookup-cell').forEach((cell, idx) => {
+    cell.addEventListener('click', e => {
+      e.stopPropagation();
+      if (document.getElementById('gPopup').style.display === 'block' && activeAnchor === cell) {
+        hidePopup(); return;
+      }
+      if (stateNum === 3) {
+        showPopup(buildLookupPicker(BRANCHES[idx].region), cell, {width:480, maxWidth:520});
+      } else {
+        showPopup(buildCellTooltip(idx), cell, {width:260});
+      }
+    });
+  });
+
+  // Delete buttons in source view → show modal
+  document.querySelectorAll('.btn-del-src').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const name = btn.dataset.name;
+      const deps = BRANCHES.filter(b => b.region === name).length;
+      if (deps > 0) {
+        showDeleteModal(name, deps);
+      }
+    });
+  });
+}
+
+function showDeleteModal(name, depCount) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-icon">${ico('block',20)}</div>
+        <div>
+          <div class="modal-title">Невозможно удалить «${name}»</div>
+          <div class="modal-sub">Значение используется в справочниках-приёмниках</div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-m);margin-bottom:8px">Следующие справочники ссылаются на эту запись:</p>
+        <div class="modal-dep-list">
+          <div class="modal-dep-item">
+            ${ico('doc',14)} <span>Филиалы</span>
+            <span style="font-size:12px;color:var(--text-f);margin-left:4px">· Главный офис</span>
+            <span class="modal-dep-count">${depCount} ${depCount===1?'запись':'записи'}</span>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text-f);margin-top:12px;display:flex;align-items:flex-start;gap:5px">
+          ${ico('info',13)} Чтобы удалить: сначала удалите связь или замените значения в приёмниках.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Закрыть</button>
+        <button class="btn">${ico('right',13)} Перейти к Филиалы</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+}
+
+// ─── RENDERS ─────────────────────────────────────────────────
+function navView() {
+  return `<div class="sprav-card">
+    <div class="sprav-header">
+      <div class="sprav-breadcrumb">
+        <svg class="bc-icon"><use href="#i-info"/></svg>
+        <span style="font-weight:600;display:flex;align-items:center;gap:4px">${ico('link',14)} Справочник название</span>
+        <span style="color:var(--text-f)">·</span>
+        <span style="display:flex;align-items:center;gap:4px">${ico('folder',14)} Ксения</span>
+      </div>
+      <div class="sprav-tabs-row">
+        <div class="sprav-tab">Опубликован</div>
+        <div class="sprav-tab active">Черновик</div>
+        <div class="sprav-tab">История</div>
+        <div class="sprav-tab-actions">
+          <button class="btn btn-icon">${ico('trash',14)} Удалить</button>
+        </div>
+      </div>
+    </div>
+    <div class="sprav-meta">
+      <span>12.02.2025 12:14</span>
+      <span class="meta-author">alnamelnikova</span>
+      <span class="meta-badge badge-work">В работе</span>
+      <span class="meta-badge badge-approve">${ico('bell',12)} На согласование</span>
+    </div>
+    <div class="sprav-toolbar">
+      <div class="search-box">${ico('search',14)}<input type="text" placeholder="Поиск"></div>
+      <div class="filter-badge">${ico('filter',13)} <span class="filter-count">0</span></div>
+    </div>
+  </div>`;
+}
+
+function navSettings(mode='Настройка') {
+  return `<div class="sprav-card">
+    <div class="settings-header">
+      <div class="settings-bc">
+        <span class="settings-title">${mode}</span>
+        <span style="color:var(--text-f)">·</span>
+        <span style="display:flex;align-items:center;gap:4px">${ico('doc',14)} <span style="color:var(--accent)">Spravochnik 1</span></span>
+        <span style="color:var(--text-f)">·</span>
+        <span style="display:flex;align-items:center;gap:4px">${ico('folder',14)} Ксения</span>
+      </div>
+      <div class="settings-actions">
+        <button class="btn btn-primary">Сохранить</button>
+        <button class="btn btn-ghost">Отменить изменения</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function branchTable(opts={}) {
+  const { editRow=-1, linkActive=false } = opts;
+  const rows = BRANCHES.map((r, i) => {
+    const isEdit = editRow === i;
+    return `<tr class="${isEdit?'row-active':''}">
+      <td>${r.name}</td>
+      <td class="td-muted">${r.type}</td>
+      <td><div class="lookup-cell" data-idx="${i}">
+        <span class="lookup-val">${r.region}</span>
+        ${isEdit ? ico('chevd',12) : ''}
+      </div></td>
+      <td class="td-muted">${r.ds}</td>
+      <td class="td-muted">${r.de}</td>
+    </tr>`;
+  }).join('');
+
+  const lkClass = linkActive ? 'link-ico link-ico-active' : 'link-ico';
+  return `<div class="sprav-card" style="margin-top:8px">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="th-sort"><div class="th-inner">Название ${ico('sort',12)}</div></th>
+          <th>Тип</th>
+          <th class="th-lookup">
+            <div class="th-lookup-inner">
+              Главный офис <svg width="14" height="14" class="${lkClass}"><use href="#i-link"/></svg>
+            </div>
+          </th>
+          <th>Дата начала</th>
+          <th>Дата окончания</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function settingsBody() {
+  const sRows = [
+    { name:'Ярославль', type:'Филиал',             ds:'01.08.2020', de:'20.05.2024' },
+    { name:'Москва',    type:'Филиал',              ds:'01.03.1934', de:'20.05.1970' },
+    { name:'Тула',      type:'Региональный филиал', ds:'01.05.1980', de:'20.05.1990' },
+  ].map(r=>`<tr>
+    <td>${r.name}</td><td class="td-muted">${r.type}</td>
+    <td style="color:var(--text-f);font-style:italic">—</td>
+    <td class="td-muted">${r.ds}</td><td class="td-muted">${r.de}</td>
+  </tr>`).join('');
+
+  const aRows = ['ID','office_name','region_id','address'].map(id=>`<tr>
+    <td>${id}</td>
+    <td><div class="attr-controls">
+      <button class="attr-ico-btn">${ico('key',14)}</button>
+      <button class="attr-ico-btn">${ico('play',14)}</button>
+      <button class="attr-ico-btn">${ico('ban',14)}</button>
+    </div></td>
+    <td><select class="select-sm"><option>Формат данных</option></select></td>
+    <td><div style="display:flex;align-items:center;gap:6px"><div style="width:6px;height:6px;border-radius:50%;background:var(--border)"></div><button class="attr-ico-btn">${ico('cog',14)}</button></div></td>
+    <td><select class="select-sm"><option>Формат данных</option></select></td>
+    <td><div style="display:flex;align-items:center;gap:6px"><div style="width:6px;height:6px;border-radius:50%;background:var(--border)"></div><button class="attr-ico-btn">${ico('cog',14)}</button></div></td>
+  </tr>`).join('');
+
+  return `<div class="sprav-card" style="margin-top:8px">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Название*</th><th>Тип</th>
+          <th class="th-lookup">
+            <div class="th-lookup-inner">
+              Главный офис <svg width="14" height="14" class="link-ico"><use href="#i-link"/></svg>
+            </div>
+          </th>
+          <th>Дата начала</th><th>Дата окончания</th>
+        </tr></thead>
+        <tbody>${sRows}</tbody>
+      </table>
+    </div>
+    <div class="toggle-row"><span>Иерархичный вид справочника</span><div class="toggle"></div></div>
+    <div class="toggle-row"><span>Бизнес-версионирование</span><div class="toggle"></div></div>
+    <div class="settings-section">Настройка ограничений</div>
+    <div class="tbl-wrap">
+      <table class="attr-table">
+        <thead><tr><th>Атрибут</th><th>Ограничение</th><th>Преобразование</th><th></th><th>Форматно-логический контроль</th><th></th></tr></thead>
+        <tbody>${aRows}</tbody>
+      </table>
+    </div>
+    <button class="add-link">${ico('right',13)} Добавить атрибут</button>
+  </div>`;
+}
+
+// ─── STATE RENDERERS ─────────────────────────────────────────
+function R0() { // Просмотр
+  return navView() + branchTable({linkActive:true}) +
+    `<div class="hint-bar">${ico('info',14)} <span>Клик на ячейке «Главный офис» — данные источника. Клик на иконке <strong>🔗</strong> в заголовке — связь.</span></div>`;
+}
+
+function R1() { // Tooltip header — auto-show on load
+  return navView() + branchTable({linkActive:true}) +
+    `<div class="hint-bar">${ico('info',14)} <span>Кликни на иконку <strong>🔗</strong> в заголовке «Главный офис» — показывает связанный источник и навигацию.</span></div>`;
+}
+
+function R2() { // Peek cell
+  return navView() + branchTable({linkActive:true}) +
+    `<div class="hint-bar">${ico('info',14)} <span>Кликни на любое значение в колонке «Главный офис» — увидишь полную строку из справочника-источника.</span></div>`;
+}
+
+function R3() { // Edit + picker
+  return navSettings('Редактирование') +
+    `<div class="sprav-card" style="margin-top:8px">
+      <div class="sprav-toolbar">
+        <div class="filter-badge active">${ico('filter',13)} <span class="filter-count">13</span></div>
+        ${['Lorem','Lorem','Lorem','Lorem','Lorem'].map(l=>`
+          <div class="filter-badge" style="border-color:var(--border)">
+            <span>${l}</span> ${ico('x',12)}
+          </div>`).join('')}
+      </div>
+    </div>` +
+    branchTable({linkActive:true, editRow:1}) +
+    `<div class="hint-bar">${ico('info',14)} <span>Кликни на любую ячейку в колонке «Главный офис» — откроется пикер с данными из «Регионы».</span></div>`;
+}
+
+function R4() { // Settings step 1
+  return navSettings() + settingsBody() +
+    `<div class="hint-bar">${ico('info',14)} <span>Кликни на иконку <strong>🔗</strong> в заголовке «Главный офис» — откроется список справочников для выбора источника.</span></div>`;
+}
+
+function R5() { // Settings step 2
+  return navSettings() + settingsBody() +
+    `<div class="hint-bar">${ico('info',14)} <span>Выбран справочник «Регионы». Кликни <strong>🔗</strong> снова — появится пикер атрибутов (шаг 2). Кнопка «← Регионы» возвращает к шагу 1.</span></div>`;
+}
+
+function R6() { // Saved + toast
+  const table = branchTable({linkActive:true});
+  return navView() + table +
+    `<div class="toast">${ico('ok',16)} Связь установлена: <strong>Главный офис → Регионы / Название</strong></div>`;
+}
+
+function R7() { // Source + delete modal
+  const sourceRows = REGIONS.map(r => {
+    const used = BRANCHES.some(b => b.region === r.name);
+    return `<tr ${used&&r.name==='Москва'?'style="background:#fff7ed"':''}>
+      <td style="${used&&r.name==='Москва'?'font-weight:500;color:var(--amber)':''}">${r.name}</td>
+      <td class="td-muted">${r.code}</td>
+      <td class="td-muted">${r.okrug}</td>
+      <td class="td-muted">${r.pop}</td>
+      <td style="text-align:right;padding-right:12px">
+        <button class="btn btn-icon btn-del-src" data-name="${r.name}" style="padding:3px 6px">${ico('trash',13)}</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="sprav-card">
+    <div class="sprav-header">
+      <div class="sprav-breadcrumb">
+        <svg class="bc-icon"><use href="#i-info"/></svg>
+        <span style="font-weight:600;display:flex;align-items:center;gap:4px">${ico('doc',14)} Регионы</span>
+        <span style="color:var(--text-f)">·</span>
+        <span style="display:flex;align-items:center;gap:4px">${ico('folder',14)} Демо</span>
+        <span style="margin-left:8px">
+          <span class="src-badge">${ico('link',12)} Справочник-источник</span>
+        </span>
+      </div>
+      <div class="sprav-tabs-row">
+        <div class="sprav-tab">Опубликован</div>
+        <div class="sprav-tab active">Черновик</div>
+        <div class="sprav-tab">История</div>
+        <div class="sprav-tab-actions">
+          <button class="btn btn-icon">${ico('trash',14)} Удалить</button>
+        </div>
+      </div>
+    </div>
+    <div class="sprav-meta">
+      <span>12.02.2025 12:14</span>
+      <span class="meta-author">alnamelnikova</span>
+      <span class="meta-badge badge-work">В работе</span>
+    </div>
+    <div class="sprav-toolbar">
+      <div class="search-box">${ico('search',14)}<input type="text" placeholder="Поиск"></div>
+    </div>
+  </div>
+  <div class="sprav-card" style="margin-top:8px">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Название</th><th>Код</th><th>Федеральный округ</th><th>Население</th><th></th></tr></thead>
+      <tbody>${sourceRows}</tbody>
+    </table></div>
+  </div>
+  <div class="hint-bar">${ico('info',14)} <span>Нажми кнопку удаления у <strong>«Москва»</strong> или <strong>«Тула»</strong> — появится модальное окно блокировки (есть зависимые приёмники).</span></div>`;
+}
+
+function R8() { // Upload errors
+  const errs = [{row:3,val:'Владивосток'},{row:7,val:'Хабаровск'},{row:12,val:'Мурманск'}];
+  return `<div class="upload-card">
+    <div class="upload-header">
+      <div class="upload-icon" style="background:var(--red-bg)">${ico('warn',22)}</div>
+      <div><div class="upload-title">Загрузка отклонена</div>
+        <div class="upload-sub">filials_update_2025.xlsx · Справочник «Филиалы»</div></div>
+    </div>
+    <div class="err-box">
+      <div class="err-box-title">${ico('link',14)} Ошибка LookUP-валидации</div>
+      <div class="err-box-desc">Значения в колонке <strong>«Главный офис»</strong> не найдены в источнике <strong>«Регионы / Название»</strong>:</div>
+      <table class="err-table">
+        <thead><tr><th>Строка</th><th>Значение в файле</th><th>Ошибка</th></tr></thead>
+        <tbody>
+          ${errs.map(e=>`<tr><td style="color:var(--text-f)">${e.row}</td><td class="ev">«${e.val}»</td><td style="color:var(--text-f)">Не найдено в источнике</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="warn-box">${ico('info',14)}<span>Убедитесь, что значения в «Главный офис» точно совпадают с полем «Название» в справочнике «Регионы».</span></div>
+    <div class="upload-footer">
+      <button class="btn btn-ghost">Отмена</button>
+      <button class="btn">Скачать файл с ошибками</button>
+      <button class="btn btn-primary">Исправить и загрузить снова</button>
+    </div>
+  </div>`;
+}
+
+function R9() { // Upload success
+  return `<div class="upload-card">
+    <div class="upload-header">
+      <div class="upload-icon" style="background:var(--green-bg)">${ico('ok',22)}</div>
+      <div><div class="upload-title">Загрузка выполнена</div>
+        <div class="upload-sub">filials_update_2025.xlsx · Справочник «Филиалы»</div></div>
+    </div>
+    <div class="ok-box">
+      <div class="ok-box-title">${ico('link',14)} LookUP-связи сохранены</div>
+      <div style="font-size:12px;color:#166534">Все значения в колонке <strong>«Главный офис»</strong> найдены в источнике <strong>«Регионы / Название»</strong>. Связи сохранены для 47 записей.</div>
+    </div>
+    <div style="margin:0 20px 16px;padding:12px 16px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r)">
+      <div style="font-size:12px;font-weight:600;color:var(--text-m);margin-bottom:10px">Итог загрузки</div>
+      <div style="display:flex;gap:28px;flex-wrap:wrap">
+        ${[{l:'Добавлено',v:'12',c:'var(--green)'},{l:'Обновлено',v:'35',c:'var(--accent)'},{l:'Удалено',v:'3',c:'var(--red)'},{l:'LookUP-связей',v:'47',c:'var(--accent)'}].map(s=>`
+          <div><div style="font-size:22px;font-weight:700;color:${s.c}">${s.v}</div><div style="font-size:11px;color:var(--text-f)">${s.l}</div></div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="warn-box">${ico('warn',14)}<span>Колонка <strong>«Тип»</strong> отсутствовала в файле — LookUP-связь для неё <strong>удалена</strong>. Откатите через «История», если это ошибка.</span></div>
+    <div class="upload-footer">
+      <button class="btn btn-ghost">Закрыть</button>
+      <button class="btn btn-primary">Перейти к справочнику</button>
+    </div>
+  </div>`;
+}
+
+const RENDERS = [R0,R1,R2,R3,R4,R5,R6,R7,R8,R9];
+
+// ─── STATE MACHINE ───────────────────────────────────────────
+let currentState = 0;
+
+function setState(n) {
+  currentState = n;
+  hidePopup();
+  document.querySelectorAll('.sb-btn').forEach((b,i) => b.classList.toggle('active', i===n));
+  document.getElementById('contentArea').innerHTML = RENDERS[n]();
+  attachInteractions(n);
+
+  // Auto-open popup for demonstration states
+  setTimeout(() => {
+    const th = document.querySelector('.th-lookup');
+    const cells = document.querySelectorAll('.lookup-cell');
+    if (n===1 && th)      showPopup(buildHeaderTooltip(), th, {width:260});
+    if (n===2 && cells[1])showPopup(buildCellTooltip(1), cells[1], {width:260});
+    if (n===3 && cells[1])showPopup(buildLookupPicker(BRANCHES[1].region), cells[1], {width:480, maxWidth:520});
+    if (n===4 && th)      showPopup(buildSpravPicker(1), th, {width:300});
+    if (n===5 && th)      showPopup(buildSpravPicker(2), th, {width:300});
+  }, 60);
+}
+
+setState(0);
+</script>
+</body>
+</html>
